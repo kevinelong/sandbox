@@ -1,0 +1,289 @@
+<style>
+    body {
+        background: #666;
+        color: #CCAA33;
+    }
+
+    #space {
+        background: #333;
+        position: relative;
+        width: 400px;
+        height: 400px;
+        overflow: hidden;
+    }
+
+    .sprite {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+</style>
+<body>
+<div id="space">
+</div>
+</body>
+<script>
+
+    /**
+     * Begin Utility Functions
+     * */
+
+    function get(id) {
+        return document.getElementById(id);
+    }
+
+
+    function create(elementType, content, attributes) {
+
+        var e = document.createElement(elementType);
+
+        if (attributes) {
+
+            var keys = Object.keys(attributes);
+
+            for (var i = 0; i < keys.length; i++) {
+                var key = keys[i];
+                var value = attributes[key];
+                e.setAttribute(key, value);
+            }
+
+        }
+
+        e.innerHTML = content;
+
+        return e;
+
+    }
+
+
+    function place(space, elementType, content, attributes) {
+
+        var s = create(elementType, content, attributes);
+        space.element.appendChild(s);
+
+        return s;
+    }
+
+
+    /**
+     * Create a Closure in lieu of a name-space.
+     * */
+    (function () {
+
+
+        
+        /**
+         * Begin Classes
+         * */
+
+        function Vector(x, y, z) {
+
+            function add(v) {
+                this.x += v.x;
+                this.y += v.y;
+                this.z += v.z;
+            }
+
+            return {
+                add: add,
+                x: x,
+                y: y,
+                z: z
+            }
+
+        }
+
+
+        function Space( element, options) {
+
+            var width = options.space_edge;
+            var height = options.space_edge;
+            var depth = options.space_edge;
+            var speed = options.speed;
+            var half_speed = speed / 2;
+
+            var list = [];
+
+            function passThrough(s) {
+
+                if (s.position.x > this.width) {
+                    s.position.x -= this.width;
+                } else if (s.position.x < 0) {
+                    s.position.x += this.width;
+                }
+
+                if (s.position.y > this.height) {
+                    s.position.y -= this.height;
+                } else if (s.position.y < 0) {
+                    s.position.y += this.height;
+                }
+
+                if (s.position.z > this.depth) {
+                    s.position.z -= this.depth;
+                } else if (s.position.z < 0) {
+                    s.position.z += this.depth;
+                }
+
+            }
+
+
+            function bounce(s) {
+
+                if (s.position.x > this.width) {
+                    s.direction.x = (-s.direction.x);
+                } else if (s.position.x < 0) {
+                    s.direction.x = (-s.direction.x);
+                }
+
+
+                if (s.position.y > this.height) {
+                    s.direction.y = (-s.direction.y);
+                } else if (s.position.y < 0) {
+                    s.direction.y = (-s.direction.y);
+                }
+
+
+                if (s.position.z > this.depth) {
+                    s.direction.z = (-s.direction.z);
+                } else if (s.position.z < 0) {
+                    s.direction.z = (-s.direction.z);
+                }
+
+            }
+
+
+            function getGravity() {
+
+                var directionX = 0;
+                var directionY = 1.1;
+                var directionZ = 0;
+
+                return new Vector(directionX, directionY, directionZ, 0);
+            }
+
+
+            function getFriction() {
+
+                var directionX = 0.99;
+                var directionY = 0.99;
+                var directionZ = 0.99;
+
+                return new Vector(directionX, directionY, directionZ, 0);
+            }
+
+
+            function getDirectionRandom() {
+
+                var directionX = (Math.random() * speed - half_speed);
+                var directionY = (Math.random() * speed - half_speed);
+                var directionZ = (Math.random() * speed - half_speed);
+
+                return new Vector(directionX, directionY, directionZ, 0);
+            }
+
+
+            function getPositionCenter() {
+
+                var positionX = (space.width / 2);
+                var positionY = (space.height / 2);
+                var positionZ = (space.height / 2);
+
+                return new Vector(positionX, positionY, positionZ, 0);
+            }
+
+
+            function createSprites(limit) {
+
+                while (limit) {
+
+                    var e = place(this, 'div', '.', {'class': 'sprite'});
+
+                    var s = new Sprite(getPositionCenter(), getDirectionRandom(), getGravity(), getFriction(), e, this);
+
+                    s.update();
+
+                    list.push(s);
+                    limit--;
+
+                }
+
+            }
+
+
+            function processSpriteList() {
+
+                var count = list.length;
+
+                for (var i = 0; i < count; i++) {
+                    var s = list[i];
+                    s.process();
+                }
+
+                setTimeout(processSpriteList, 1000);
+            }
+
+            return {
+                createSprites: createSprites,
+                processSpriteList: processSpriteList,
+                passThrough: passThrough,
+                bounce: bounce,
+                width: width,
+                height: height,
+                depth: depth,
+                element: element
+            };
+
+        }
+
+
+        function Sprite(position, direction, gravity, friction, element, space) {
+
+
+            function update() {
+
+                this.element.style.left = Math.floor(position.x) + 'px';
+                this.element.style.top = Math.floor(position.y) + 'px';
+
+            }
+
+
+            function process() {
+
+                this.position.add(this.direction);
+                this.direction.add(this.gravity);
+                this.direction.add(this.friction);
+
+                this.space.passThrough(this);
+                this.update();
+
+            }
+
+
+            return {
+                update: update,
+                process: process,
+                element: element,
+                position: position,
+                direction: direction,
+                gravity: gravity,
+                friction: friction,
+                space: space
+            }
+
+        }
+
+        var options = {
+            space_edge : window.innerHeight > window.innerWidth ? window.innerWidth : window.innerHeight,
+            quantity : 10,
+            speed : 2,
+            half_speed : 1
+        };
+
+        var space = new Space( get('space'), options );
+
+        space.createSprites(10);
+        space.processSpriteList();
+
+    })();
+
+</script>
