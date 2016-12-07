@@ -19,8 +19,8 @@
     }
 </style>
 <body>
-<div id="space">
-</div>
+    <div id="space">
+    </div>
 </body>
 <script>
 
@@ -84,8 +84,22 @@
                 this.z += v.z;
             }
 
+            function subtract(v) {
+                this.x -= v.x;
+                this.y -= v.y;
+                this.z -= v.z;
+            }
+
+            function multiply(v) {
+                this.x *= v.x;
+                this.y *= v.y;
+                this.z *= v.z;
+            }
+
             return {
                 add: add,
+                subtract: subtract,
+                multiply: multiply,
                 x: x,
                 y: y,
                 z: z
@@ -100,6 +114,7 @@
             var height = options.space_edge;
             var depth = options.space_edge;
             var speed = options.speed;
+            var quantity = options.quantity;
             var half_speed = speed / 2;
 
             var list = [];
@@ -129,24 +144,32 @@
 
             function bounce(s) {
 
-                if (s.position.x > this.width) {
-                    s.direction.x = (-s.direction.x);
+                var factor = s.elasticity;
+
+                if (s.position.x+s.element.offsetWidth > width) {
+                    s.position.x = width - s.element.offsetWidth;
+                    s.direction.x = (-s.direction.x * factor);
                 } else if (s.position.x < 0) {
-                    s.direction.x = (-s.direction.x);
+                    s.position.x = 0;
+                    s.direction.x = (-s.direction.x * factor);
                 }
 
 
-                if (s.position.y > this.height) {
-                    s.direction.y = (-s.direction.y);
+                if (s.position.y + s.element.offsetHeight > height) {
+                    s.position.y = height - s.element.offsetHeight ;
+                    s.direction.y = (-s.direction.y * factor);
                 } else if (s.position.y < 0) {
-                    s.direction.y = (-s.direction.y);
+                    s.position.y = 0;
+                    s.direction.y = (-s.direction.y * factor);
                 }
 
 
-                if (s.position.z > this.depth) {
-                    s.direction.z = (-s.direction.z);
+                if (s.position.z > depth) {
+                    s.position.z = depth;
+                    s.direction.z = (-s.direction.z * factor);
                 } else if (s.position.z < 0) {
-                    s.direction.z = (-s.direction.z);
+                    s.position.z = 0;
+                    s.direction.z = (-s.direction.z * factor);
                 }
 
             }
@@ -155,7 +178,7 @@
             function getGravity() {
 
                 var directionX = 0;
-                var directionY = 1.1;
+                var directionY = -0.02;
                 var directionZ = 0;
 
                 return new Vector(directionX, directionY, directionZ, 0);
@@ -164,9 +187,9 @@
 
             function getFriction() {
 
-                var directionX = 0.99;
-                var directionY = 0.99;
-                var directionZ = 0.99;
+                var directionX = 0.995;
+                var directionY = 0.995;
+                var directionZ = 0.995;
 
                 return new Vector(directionX, directionY, directionZ, 0);
             }
@@ -192,51 +215,82 @@
             }
 
 
-            function createSprites(limit) {
+            function start() {
+                var limit = this.quantity;
 
-                while (limit) {
+                while(limit--) {
 
-                    var e = place(this, 'div', '.', {'class': 'sprite'});
+                    var e = place(this, 'div', ']o[', {'class': 'sprite'});
 
-                    var s = new Sprite(getPositionCenter(), getDirectionRandom(), getGravity(), getFriction(), e, this);
+                    var s = new Sprite(getPositionCenter(), getDirectionRandom(), 0.99, 0.99, e);
 
                     s.update();
 
-                    list.push(s);
-                    limit--;
+                    this.list.push(s);
 
                 }
+
+                this.processSpriteList();
 
             }
 
 
+            function process(sprite) {
+
+                bounce(sprite);
+
+                sprite.direction.subtract(gravity);
+                sprite.direction.multiply(friction);
+
+
+                sprite.position.add(sprite.direction);
+
+//                this.space.passThrough(this);
+                sprite.update();
+
+            }
+
+            var iterations = 0;
             function processSpriteList() {
 
                 var count = list.length;
 
                 for (var i = 0; i < count; i++) {
                     var s = list[i];
-                    s.process();
+                    process(s);
                 }
 
-                setTimeout(processSpriteList, 1000);
+                iterations++;
+                if(iterations < 999){
+                    setTimeout(processSpriteList,10);
+                }else{
+                    self.location = self.location;
+                }
             }
 
+            var gravity = getGravity();
+            var friction = getFriction();
+
             return {
-                createSprites: createSprites,
+                start: start,
                 processSpriteList: processSpriteList,
                 passThrough: passThrough,
+                process: process,
+                gravity: gravity,
+                friction: friction,
                 bounce: bounce,
                 width: width,
                 height: height,
                 depth: depth,
+                list: list,
+                quantity: quantity,
                 element: element
             };
 
         }
 
 
-        function Sprite(position, direction, gravity, friction, element, space) {
+        function Sprite(position, direction, friction_factor, elasticity, element) {
 
 
             function update() {
@@ -246,43 +300,28 @@
 
             }
 
-
-            function process() {
-
-                this.position.add(this.direction);
-                this.direction.add(this.gravity);
-                this.direction.add(this.friction);
-
-                this.space.passThrough(this);
-                this.update();
-
-            }
-
-
             return {
                 update: update,
-                process: process,
                 element: element,
                 position: position,
                 direction: direction,
-                gravity: gravity,
-                friction: friction,
-                space: space
+                friction_factor: friction_factor,
+                elasticity: elasticity
             }
 
         }
 
+        var element = get('space');
+        var space_edge = element.offsetHeight > element.offsetWidth ? element.offsetWidth : element.offsetHeight;
+
         var options = {
-            space_edge : window.innerHeight > window.innerWidth ? window.innerWidth : window.innerHeight,
-            quantity : 10,
-            speed : 2,
-            half_speed : 1
+            space_edge : space_edge,
+            quantity : 60,
+            speed : 12
         };
 
         var space = new Space( get('space'), options );
-
-        space.createSprites(10);
-        space.processSpriteList();
+        space.start();
 
     })();
 
