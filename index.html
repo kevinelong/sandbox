@@ -7,20 +7,25 @@
     #space {
         background: #333;
         position: relative;
-        width: 400px;
-        height: 400px;
+        width: 100px;
+        height: 100px;
         overflow: hidden;
     }
 
     .sprite {
+        color: green;
         position: absolute;
         left: 0;
         top: 0;
     }
+
+    .sprite.hit {
+        color: red;
+    }
 </style>
 <body>
-    <div id="space">
-    </div>
+<div id="space">
+</div>
 </body>
 <script>
 
@@ -68,261 +73,318 @@
     /**
      * Create a Closure in lieu of a name-space.
      * */
-    (function () {
 
 
-        
-        /**
-         * Begin Classes
-         * */
+    /**
+     * Begin Classes
+     * */
 
-        function Vector(x, y, z) {
+    function Vector(x, y, z) {
 
-            function add(v) {
-                this.x += v.x;
-                this.y += v.y;
-                this.z += v.z;
-            }
+        function add(v) {
+            this.x += v.x;
+            this.y += v.y;
+            this.z += v.z;
+        }
 
-            function subtract(v) {
-                this.x -= v.x;
-                this.y -= v.y;
-                this.z -= v.z;
-            }
+        function subtract(v) {
+            this.x -= v.x;
+            this.y -= v.y;
+            this.z -= v.z;
+        }
 
-            function multiply(v) {
-                this.x *= v.x;
-                this.y *= v.y;
-                this.z *= v.z;
-            }
+        function multiply(v) {
+            this.x *= v.x;
+            this.y *= v.y;
+            this.z *= v.z;
+        }
 
-            return {
-                add: add,
-                subtract: subtract,
-                multiply: multiply,
-                x: x,
-                y: y,
-                z: z
-            }
+        function average(v) {
+            x = (v.x + this.x) / 2;
+            y = (v.y + this.y) / 2;
+            z = (v.z + this.z) / 2;
 
+            this.x = x;
+            v.x = x;
+
+            this.y = y;
+            v.y = y;
+
+            this.z = z;
+            v.z = z;
+        }
+
+        return {
+            add: add,
+            subtract: subtract,
+            multiply: multiply,
+            average: average,
+            x: x,
+            y: y,
+            z: z
+        }
+
+    }
+
+
+    function Space() {
+    }
+    Space.prototype.passThrough = function passThrough(s) {
+//        debugger;
+        if (s.position.x > this.width) {
+            s.position.x -= this.width;
+        } else if (s.position.x < 0) {
+            s.position.x += this.width;
+        }
+
+        if (s.position.y > this.height) {
+            s.position.y -= this.height;
+        } else if (s.position.y < 0) {
+            s.position.y += this.height;
+        }
+
+        if (s.position.z > this.depth) {
+            s.position.z -= this.depth;
+        } else if (s.position.z < 0) {
+            s.position.z += this.depth;
+        }
+
+    }
+
+
+    Space.prototype.bounce = function bounce(s) {
+
+        var factor = s.elasticity;
+
+        if (s.position.x + s.element.offsetWidth > width) {
+            s.position.x = width - s.element.offsetWidth;
+            s.direction.x = (-s.direction.x * factor);
+        } else if (s.position.x < 0) {
+            s.position.x = 0;
+            s.direction.x = (-s.direction.x * factor);
         }
 
 
-        function Space( element, options) {
-
-            var width = options.space_edge;
-            var height = options.space_edge;
-            var depth = options.space_edge;
-            var speed = options.speed;
-            var quantity = options.quantity;
-            var half_speed = speed / 2;
-
-            var list = [];
-
-            function passThrough(s) {
-
-                if (s.position.x > this.width) {
-                    s.position.x -= this.width;
-                } else if (s.position.x < 0) {
-                    s.position.x += this.width;
-                }
-
-                if (s.position.y > this.height) {
-                    s.position.y -= this.height;
-                } else if (s.position.y < 0) {
-                    s.position.y += this.height;
-                }
-
-                if (s.position.z > this.depth) {
-                    s.position.z -= this.depth;
-                } else if (s.position.z < 0) {
-                    s.position.z += this.depth;
-                }
-
-            }
-
-
-            function bounce(s) {
-
-                var factor = s.elasticity;
-
-                if (s.position.x+s.element.offsetWidth > width) {
-                    s.position.x = width - s.element.offsetWidth;
-                    s.direction.x = (-s.direction.x * factor);
-                } else if (s.position.x < 0) {
-                    s.position.x = 0;
-                    s.direction.x = (-s.direction.x * factor);
-                }
-
-
-                if (s.position.y + s.element.offsetHeight > height) {
-                    s.position.y = height - s.element.offsetHeight ;
-                    s.direction.y = (-s.direction.y * factor);
-                } else if (s.position.y < 0) {
-                    s.position.y = 0;
-                    s.direction.y = (-s.direction.y * factor);
-                }
-
-
-                if (s.position.z > depth) {
-                    s.position.z = depth;
-                    s.direction.z = (-s.direction.z * factor);
-                } else if (s.position.z < 0) {
-                    s.position.z = 0;
-                    s.direction.z = (-s.direction.z * factor);
-                }
-
-            }
-
-
-            function getGravity() {
-
-                var directionX = 0;
-                var directionY = -0.02;
-                var directionZ = 0;
-
-                return new Vector(directionX, directionY, directionZ, 0);
-            }
-
-
-            function getFriction() {
-
-                var directionX = 0.995;
-                var directionY = 0.995;
-                var directionZ = 0.995;
-
-                return new Vector(directionX, directionY, directionZ, 0);
-            }
-
-
-            function getDirectionRandom() {
-
-                var directionX = (Math.random() * speed - half_speed);
-                var directionY = (Math.random() * speed - half_speed);
-                var directionZ = (Math.random() * speed - half_speed);
-
-                return new Vector(directionX, directionY, directionZ, 0);
-            }
-
-
-            function getPositionCenter() {
-
-                var positionX = (space.width / 2);
-                var positionY = (space.height / 2);
-                var positionZ = (space.height / 2);
-
-                return new Vector(positionX, positionY, positionZ, 0);
-            }
-
-
-            function start() {
-                var limit = this.quantity;
-
-                while(limit--) {
-
-                    var e = place(this, 'div', ']o[', {'class': 'sprite'});
-
-                    var s = new Sprite(getPositionCenter(), getDirectionRandom(), 0.99, 0.99, e);
-
-                    s.update();
-
-                    this.list.push(s);
-
-                }
-
-                this.processSpriteList();
-
-            }
-
-
-            function process(sprite) {
-
-                bounce(sprite);
-
-                sprite.direction.subtract(gravity);
-                sprite.direction.multiply(friction);
-
-
-                sprite.position.add(sprite.direction);
-
-//                this.space.passThrough(this);
-                sprite.update();
-
-            }
-
-            var iterations = 0;
-            function processSpriteList() {
-
-                var count = list.length;
-
-                for (var i = 0; i < count; i++) {
-                    var s = list[i];
-                    process(s);
-                }
-
-                iterations++;
-                if(iterations < 999){
-                    setTimeout(processSpriteList,10);
-                }else{
-                    self.location = self.location;
-                }
-            }
-
-            var gravity = getGravity();
-            var friction = getFriction();
-
-            return {
-                start: start,
-                processSpriteList: processSpriteList,
-                passThrough: passThrough,
-                process: process,
-                gravity: gravity,
-                friction: friction,
-                bounce: bounce,
-                width: width,
-                height: height,
-                depth: depth,
-                list: list,
-                quantity: quantity,
-                element: element
-            };
-
+        if (s.position.y + s.element.offsetHeight > height) {
+            s.position.y = height - s.element.offsetHeight;
+            s.direction.y = (-s.direction.y * factor);
+        } else if (s.position.y < 0) {
+            s.position.y = 0;
+            s.direction.y = (-s.direction.y * factor);
         }
 
 
-        function Sprite(position, direction, friction_factor, elasticity, element) {
+        if (s.position.z > depth) {
+            s.position.z = depth;
+            s.direction.z = (-s.direction.z * factor);
+        } else if (s.position.z < 0) {
+            s.position.z = 0;
+            s.direction.z = (-s.direction.z * factor);
+        }
+
+    }
 
 
-            function update() {
+    Space.prototype.getGravity = function getGravity() {
 
-                this.element.style.left = Math.floor(position.x) + 'px';
-                this.element.style.top = Math.floor(position.y) + 'px';
+        var directionX = 0;
+        var directionY = -0.02;
+        var directionZ = 0;
 
-            }
+        return new Vector(directionX, directionY, directionZ, 0);
+    };
 
-            return {
-                update: update,
-                element: element,
-                position: position,
-                direction: direction,
-                friction_factor: friction_factor,
-                elasticity: elasticity
-            }
+
+    Space.prototype.getFriction = function getFriction() {
+
+        var directionX = 0.995;
+        var directionY = 0.995;
+        var directionZ = 0.995;
+
+        return new Vector(directionX, directionY, directionZ, 0);
+    }
+
+
+    Space.prototype.getDirectionRandom = function getDirectionRandom() {
+
+        var directionX = (Math.random() * this.speed - this.half_speed);
+        var directionY = (Math.random() * this.speed - this.half_speed);
+        var directionZ = (Math.random() * this.speed - this.half_speed);
+
+        return new Vector(directionX, directionY, directionZ, 0);
+    }
+
+
+    Space.prototype.getPositionCenter
+    function getPositionCenter() {
+
+        var positionX = (space.width / 2);
+        var positionY = (space.height / 2);
+        var positionZ = (space.depth / 2);
+
+        return new Vector(positionX, positionY, positionZ, 0);
+    }
+
+    Space.prototype.getPositionRandom = function getPositionRandom() {
+
+        var positionX = (Math.random() * space.width );
+        var positionY = (Math.random() * space.height );
+        var positionZ = (Math.random() * space.depth);
+
+        return new Vector(positionX, positionY, positionZ, 0);
+    }
+
+
+    Space.prototype.start = function start(element, options) {
+
+        this.element = element;
+        this.width = options.space_edge;
+        this.height = options.space_edge;
+        this.depth = options.space_edge;
+        this.speed = options.speed;
+        this.quantity = options.quantity;
+        this.half_speed = this.speed / 2;
+
+        this.list = [];
+        this.colliding = {};
+
+        var limit = this.quantity;
+        for (var i = 0; i < limit; i++) {
+
+            var e = place(this, 'div', '.', {'class': 'sprite'});
+
+            var s = new Sprite(
+                i,
+                this.getPositionRandom(),
+                this.getDirectionRandom(),
+                0.99,
+                0.99,
+                e
+            );
+
+            s.update();
+
+            this.list.push(s);
 
         }
 
-        var element = get('space');
-        var space_edge = element.offsetHeight > element.offsetWidth ? element.offsetWidth : element.offsetHeight;
+        this.gravity = this.getGravity();
+        this.friction = this.getFriction();
 
-        var options = {
-            space_edge : space_edge,
-            quantity : 60,
-            speed : 12
-        };
+        this.processSpriteList();
 
-        var space = new Space( get('space'), options );
-        space.start();
+    }
 
-    })();
+
+    Space.prototype.detect = function detect(s1, s2) {
+        var limit = 1;
+//                debugger;
+        if (
+            Math.abs(s1.position.x - s2.position.x) < limit
+            &&
+            Math.abs(s1.position.y - s2.position.y) < limit
+        ) {
+            s1.direction.average(s2.direction);
+            s2.direction.average(s1.direction);
+            s1.element.classList.add('hit');
+            s2.element.classList.add('hit');
+            return true;
+        }
+        return false;
+    }
+
+    Space.prototype.collisionDetection = function collisionDetection(s1) {
+        var count = this.list.length;
+
+        for (var i = 0; i < count; i++) {
+            var s2 = this.list[i];
+//                    if (
+//                        s1 != s2 && !(window.colliding.hasOwnProperty(s1.index))
+//                        && !(window.colliding.hasOwnProperty(s2.index))
+//                    ) {
+            if (this.detect(s1, s2)) {
+                this.colliding[s1.index] = s1.index;
+                this.colliding[s2.index] = s2.index;
+            }
+//                    }
+        }
+
+    }
+
+    Space.prototype.process = function process(sprite) {
+                this.collisionDetection(sprite);
+//                passThrough(sprite);
+//                bounce(sprite);
+
+//                sprite.direction.subtract(this.gravity);
+//                sprite.direction.multiply(this.friction);
+
+
+        sprite.position.add(sprite.direction);
+
+        this.passThrough(sprite);
+        sprite.update();
+
+    }
+
+    var iterations = 0;
+
+    Space.prototype.processSpriteList = function processSpriteList() {
+//                debugger;
+        this.colliding = {};
+        var count = this.list.length;
+
+        for (var i = 0; i < count; i++) {
+            var s = this.list[i];
+            this.process(s);
+        }
+        var that = this;
+        iterations++;
+        if (iterations < 9999) {
+            window.requestAnimationFrame(function(){that.processSpriteList();});
+
+//            setTimeout(function(){that.processSpriteList();}, 1, that);
+        } else {
+            self.location = self.location;
+        }
+
+
+    }
+
+
+    function Sprite(index, position, direction, friction_factor, elasticity, element) {
+
+
+        function update() {
+
+            this.element.style.left = Math.floor(position.x) + 'px';
+            this.element.style.top = Math.floor(position.y) + 'px';
+
+        }
+
+        return {
+            index: index,
+            update: update,
+            element: element,
+            position: position,
+            direction: direction,
+            friction_factor: friction_factor,
+            elasticity: elasticity
+        }
+
+    }
+
+    var element = get('space');
+    var space_edge = element.offsetHeight > element.offsetWidth ? element.offsetWidth : element.offsetHeight;
+
+    var options = {
+        space_edge: space_edge,
+        quantity: 90,
+        speed: 12
+    };
+
+    var space = new Space();
+    space.start(get('space'), options);
+
 
 </script>
